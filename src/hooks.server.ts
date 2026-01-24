@@ -1,8 +1,6 @@
 import type { Handle } from "@sveltejs/kit";
 import { getSession } from "$lib/server/auth";
 import { prisma } from "$lib/server/prisma";
-import { RateLimitService } from "$lib/services/rate-limit";
-
 
 const ADMIN_RATE_LIMIT = 100;
 const ADMIN_RATE_WINDOW = 5 * 60 * 1000;
@@ -31,7 +29,6 @@ function checkAdminRateLimit(ip: string): boolean {
   return true;
 }
 
-
 setInterval(() => {
   const now = Date.now();
   for (const [key, limit] of adminRateLimits.entries()) {
@@ -42,16 +39,15 @@ setInterval(() => {
 }, ADMIN_RATE_WINDOW);
 
 export const handle: Handle = async ({ event, resolve }) => {
-
   const response = await resolve(event);
+
   response.headers.set('X-Frame-Options', 'DENY');
   response.headers.set('X-Content-Type-Options', 'nosniff');
   response.headers.set('Referrer-Policy', 'strict-origin-when-cross-origin');
-  response.headers.set('X-XSS-Protection', '1; mode=block');
   response.headers.set(
     'Content-Security-Policy',
     "default-src 'self'; " +
-    "script-src 'self' 'unsafe-inline' 'unsafe-eval'; " +
+    "script-src 'self' 'unsafe-inline'; " +
     "style-src 'self' 'unsafe-inline'; " +
     "img-src 'self' data: https:; " +
     "font-src 'self' data:; " +
@@ -66,14 +62,12 @@ export const handle: Handle = async ({ event, resolve }) => {
     "https://vidplay.online/ https://*.vidplay.online/;"
   );
 
-
   const isAdminRoute = event.url.pathname.startsWith('/admin');
 
   try {
     const session = await getSession(event.cookies);
 
     if (session?.userId) {
-
       const user = await prisma.user.findUnique({
         where: {
           id: session.userId,
@@ -87,14 +81,12 @@ export const handle: Handle = async ({ event, resolve }) => {
       });
 
       if (user) {
-
         event.locals.user = {
           id: user.id,
           username: user.username,
           email: user.email || '',
           isAdmin: user.isAdmin,
         };
-
 
         if (isAdminRoute) {
           if (!user.isAdmin) {
@@ -107,23 +99,18 @@ export const handle: Handle = async ({ event, resolve }) => {
           }
         }
       } else {
-
         event.cookies.delete("session", { path: "/" });
-
 
         if (isAdminRoute) {
           return new Response('Unauthorized', { status: 403 });
         }
       }
     } else if (isAdminRoute) {
-
       return new Response('Unauthorized', { status: 403 });
     }
   } catch (error) {
-
     event.cookies.delete("session", { path: "/" });
     console.error("Session validation error:", error);
-
 
     if (isAdminRoute) {
       return new Response('Unauthorized', { status: 403 });

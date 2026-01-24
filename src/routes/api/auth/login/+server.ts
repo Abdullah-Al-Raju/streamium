@@ -2,29 +2,41 @@ import { json } from "@sveltejs/kit";
 import type { RequestEvent } from "@sveltejs/kit";
 import { authService } from "$lib/server/services/auth";
 import { createSessionCookie } from "$lib/server/auth";
+import { RateLimitService } from "$lib/server/services/rate-limit";
 
-export async function POST({ request }: RequestEvent) {
+export async function POST({ request, getClientAddress }: RequestEvent) {
+  const clientIp = getClientAddress();
+
+  const rateLimit = RateLimitService.checkLoginLimit(clientIp);
+  if (!rateLimit.allowed) {
+    return json(
+      { error: `Too many login attempts. Please try again in ${Math.ceil(rateLimit.timeLeft! / 60)} minutes.` },
+      { status: 429 }
+    );
+  }
+
   try {
     const { usernameOrEmail, password } = await request.json();
 
     if (!usernameOrEmail || !password) {
-      return new Response("Username/Email and password are required", { status: 400 });
+      return json({ error: "Username/Email and password are required" }, { status: 400 });
     }
 
     const user = await authService.validateUser(usernameOrEmail, password);
     if (!user) {
-      return new Response("Invalid credentials", { status: 401 });
+      return json({ error: "Invalid credentials" }, { status: 401 });
     }
 
     const token = await authService.generateToken(user);
+    const isProduction = process.env.NODE_ENV === 'production';
 
     return json(user, {
       headers: {
-        "Set-Cookie": createSessionCookie(token),
+        "Set-Cookie": createSessionCookie(token, isProduction),
       },
     });
   } catch (error) {
     console.error("Login error:", error);
-    return new Response("Internal server error", { status: 500 });
+    return json({ error: "Internal server error" }, { status: 500 });
   }
 }

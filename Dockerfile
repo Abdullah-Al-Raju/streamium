@@ -10,12 +10,15 @@ RUN apt-get update && apt-get install -y \
 COPY package*.json ./
 COPY prisma ./prisma/
 
-RUN npm install
+RUN npm ci --only=production
 
 COPY . .
 
 RUN npx prisma generate
+RUN npm run build
 
 EXPOSE 5173
 
-CMD ["npm", "run", "dev", "--", "--host"]
+ENV NODE_ENV=production
+
+CMD ["node", "build"]

@@ -1,7 +1,10 @@
 import { json } from "@sveltejs/kit";
 import type { RequestEvent } from "@sveltejs/kit";
-import { authService } from "$lib/services/auth";
-import { RateLimitService } from "$lib/services/rate-limit";
+import { authService } from "$lib/server/services/auth";
+import { RateLimitService } from "$lib/server/services/rate-limit";
+
+const PASSWORD_MIN_LENGTH = 8;
+const PASSWORD_REGEX = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d).+$/;
 
 export async function POST({ request }: RequestEvent) {
   const { token, newPassword } = await request.json();
@@ -13,9 +16,16 @@ export async function POST({ request }: RequestEvent) {
     );
   }
 
-  if (newPassword.length < 8) {
+  if (newPassword.length < PASSWORD_MIN_LENGTH) {
     return json(
-      { error: "Password must be at least 8 characters long" },
+      { error: `Password must be at least ${PASSWORD_MIN_LENGTH} characters long` },
+      { status: 400 },
+    );
+  }
+
+  if (!PASSWORD_REGEX.test(newPassword)) {
+    return json(
+      { error: "Password must contain at least one uppercase letter, one lowercase letter, and one number" },
       { status: 400 },
     );
   }

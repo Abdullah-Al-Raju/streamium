@@ -1,6 +1,6 @@
 import { JWT_SECRET } from "$env/static/private";
 import jsonwebtoken from "jsonwebtoken";
-import * as bcrypt from "bcrypt";
+import bcrypt from "bcryptjs";
 import { prisma } from "$lib/server/prisma";
 import type {
   UserSession,
@@ -97,11 +97,6 @@ class AuthService implements AuthServiceInterface {
     const user = Array.isArray(result) ? result[0] : result;
     if (!user) return null;
 
-
-    if (password === "") {
-      const { passwordHash, ...userSession } = user;
-      return toUserSession(userSession);
-    }
 
     const isValid = await this.comparePasswords(password, user.passwordHash);
     if (!isValid) return null;

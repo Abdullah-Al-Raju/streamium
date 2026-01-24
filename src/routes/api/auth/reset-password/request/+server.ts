@@ -1,7 +1,7 @@
 import { json } from "@sveltejs/kit";
 import type { RequestEvent } from "@sveltejs/kit";
-import { authService } from "$lib/services/auth";
-import { RateLimitService } from "$lib/services/rate-limit";
+import { authService } from "$lib/server/services/auth";
+import { RateLimitService } from "$lib/server/services/rate-limit";
 
 export async function POST({ request }: RequestEvent) {
   const { identifier } = await request.json();

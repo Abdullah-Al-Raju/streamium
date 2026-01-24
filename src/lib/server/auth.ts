@@ -4,7 +4,10 @@ import jwt from "jsonwebtoken";
 import bcrypt from "bcryptjs";
 import type { Cookies } from "@sveltejs/kit";
 
-const JWT_SECRET = process.env.JWT_SECRET || "your-secret-key";
+const JWT_SECRET = process.env.JWT_SECRET;
+if (!JWT_SECRET) {
+  throw new Error("JWT_SECRET environment variable is required");
+}
 const COOKIE_NAME = "session";
 
 interface Session {
@@ -43,8 +46,9 @@ export async function hashPassword(password: string): Promise<string> {
   return bcrypt.hash(password, 10);
 }
 
-export function createSessionCookie(token: string): string {
-  return `${COOKIE_NAME}=${token}; Path=/; HttpOnly; SameSite=Strict; Max-Age=${60 * 60 * 24 * 7}`;
+export function createSessionCookie(token: string, secure: boolean = true): string {
+  const secureFlag = secure ? " Secure;" : "";
+  return `${COOKIE_NAME}=${token}; Path=/; HttpOnly; SameSite=Strict;${secureFlag} Max-Age=${60 * 60 * 24 * 7}`;
 }
 
 export function clearSessionCookie(): string {

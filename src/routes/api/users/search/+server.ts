@@ -2,6 +2,10 @@ import { error, json } from "@sveltejs/kit";
 import type { RequestEvent } from "@sveltejs/kit";
 import { prisma } from "$lib/server/prisma";
 
+function escapeLikePattern(pattern: string): string {
+  return pattern.replace(/[%_\\]/g, '\\$&');
+}
+
 export async function GET({ url, locals }: RequestEvent) {
   if (!locals.user) {
     throw error(401, "Unauthorized");
@@ -12,17 +16,30 @@ export async function GET({ url, locals }: RequestEvent) {
     throw error(400, "Query parameter is required");
   }
 
+  if (query.length > 50) {
+    throw error(400, "Query too long");
+  }
+
   try {
-    const users = await prisma.$queryRaw<
-      Array<{ id: number; username: string }>
-    >`
-      SELECT id, username
-      FROM users
-      WHERE username LIKE ${`%${query}%`}
-      AND id != ${locals.user.id}
-      ORDER BY username ASC
-      LIMIT 5
-    `;
+    const escapedQuery = escapeLikePattern(query);
+    const users = await prisma.user.findMany({
+      where: {
+        username: {
+          contains: escapedQuery,
+        },
+        NOT: {
+          id: locals.user.id,
+        },
+      },
+      select: {
+        id: true,
+        username: true,
+      },
+      orderBy: {
+        username: 'asc',
+      },
+      take: 5,
+    });
 
     return json(users);
   } catch (err) {
