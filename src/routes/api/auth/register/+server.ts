@@ -3,6 +3,7 @@ import type { RequestEvent } from "@sveltejs/kit";
 import { authService } from "$lib/server/services/auth";
 import { createSessionCookie } from "$lib/server/auth";
 import { RateLimitService } from "$lib/server/services/rate-limit";
+import { dev } from "$app/environment";
 
 const PASSWORD_MIN_LENGTH = 8;
 const PASSWORD_REGEX = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d).+$/;
@@ -57,7 +58,7 @@ export async function POST({ request, getClientAddress }: RequestEvent) {
 
     const user = await authService.createUser(username, email, password);
     const token = await authService.generateToken(user);
-    const isProduction = process.env.NODE_ENV === 'production';
+    const isProduction = !dev;
 
     return json(user, {
       headers: {

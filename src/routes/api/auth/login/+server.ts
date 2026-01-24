@@ -3,6 +3,7 @@ import type { RequestEvent } from "@sveltejs/kit";
 import { authService } from "$lib/server/services/auth";
 import { createSessionCookie } from "$lib/server/auth";
 import { RateLimitService } from "$lib/server/services/rate-limit";
+import { dev } from "$app/environment";
 
 export async function POST({ request, getClientAddress }: RequestEvent) {
   const clientIp = getClientAddress();
@@ -28,7 +29,7 @@ export async function POST({ request, getClientAddress }: RequestEvent) {
     }
 
     const token = await authService.generateToken(user);
-    const isProduction = process.env.NODE_ENV === 'production';
+    const isProduction = !dev;
 
     return json(user, {
       headers: {
