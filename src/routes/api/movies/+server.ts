@@ -1,12 +1,16 @@
-import { error, json } from "@sveltejs/kit";
+import { json } from "@sveltejs/kit";
 import type { RequestEvent } from "@sveltejs/kit";
+import { TMDB_API_KEY, TMDB_API_URL } from "$env/static/private";
 
 export async function GET({ fetch, url }: RequestEvent) {
-  const tmdbApiKey = process.env.TMDB_API_KEY;
-  const tmdbApiUrl = process.env.TMDB_API_URL;
-
-  if (!tmdbApiKey || !tmdbApiUrl) {
-    throw error(500, "TMDB API configuration missing");
+  if (!TMDB_API_KEY || !TMDB_API_URL) {
+    return json({
+      results: [],
+      total_pages: 0,
+      total_results: 0,
+      page: 1,
+      error: "TMDB API is not configured. Please add TMDB_API_KEY to your .env file."
+    }, { status: 200 });
   }
 
   const page = url.searchParams.get("page") || "1";
@@ -16,48 +20,68 @@ export async function GET({ fetch, url }: RequestEvent) {
 
   try {
     let apiUrl: string;
-    const baseParams = `api_key=${tmdbApiKey}&language=en-US&page=${page}&vote_average.gte=0.1`;
+    const baseParams = `api_key=${TMDB_API_KEY}&language=en-US&page=${page}&vote_average.gte=0.1`;
 
     switch (sort) {
       case "trending":
-        apiUrl = `${tmdbApiUrl}/trending/movie/week?${baseParams}`;
+        apiUrl = `${TMDB_API_URL}/trending/movie/week?${baseParams}`;
         break;
       case "popular":
-        apiUrl = `${tmdbApiUrl}/movie/popular?${baseParams}`;
+        apiUrl = `${TMDB_API_URL}/movie/popular?${baseParams}`;
         break;
       case "top_rated":
-        apiUrl = `${tmdbApiUrl}/movie/top_rated?${baseParams}`;
+        apiUrl = `${TMDB_API_URL}/movie/top_rated?${baseParams}`;
         break;
       case "now_playing":
-        apiUrl = `${tmdbApiUrl}/movie/now_playing?${baseParams}`;
+        apiUrl = `${TMDB_API_URL}/movie/now_playing?${baseParams}`;
         break;
       case "upcoming":
-        apiUrl = `${tmdbApiUrl}/movie/upcoming?${baseParams}`;
+        apiUrl = `${TMDB_API_URL}/movie/upcoming?${baseParams}`;
         break;
       default:
-        apiUrl = `${tmdbApiUrl}/discover/movie?${baseParams}`;
+        apiUrl = `${TMDB_API_URL}/discover/movie?${baseParams}`;
     }
 
-
     if (genre || year) {
-      apiUrl = `${tmdbApiUrl}/discover/movie?${baseParams}`;
+      apiUrl = `${TMDB_API_URL}/discover/movie?${baseParams}`;
       if (genre) apiUrl += `&with_genres=${genre}`;
       if (year) apiUrl += `&primary_release_year=${year}`;
     }
 
     const response = await fetch(apiUrl);
+
+    if (response.status === 401) {
+      return json({
+        results: [],
+        total_pages: 0,
+        total_results: 0,
+        page: 1,
+        error: "Invalid TMDB API key. Please check your TMDB_API_KEY in .env file."
+      }, { status: 200 });
+    }
+
     if (!response.ok) {
-      throw error(response.status, "Failed to fetch movies");
+      return json({
+        results: [],
+        total_pages: 0,
+        total_results: 0,
+        page: 1,
+        error: `Failed to fetch movies (${response.status})`
+      }, { status: 200 });
     }
 
     const data = await response.json();
-
-
     data.results = data.results.filter((movie: any) => movie.vote_average > 0);
 
     return json(data);
   } catch (err) {
     console.error("Error fetching movies:", err);
-    throw error(500, "Failed to fetch movies");
+    return json({
+      results: [],
+      total_pages: 0,
+      total_results: 0,
+      page: 1,
+      error: "Failed to fetch movies. Please try again later."
+    }, { status: 200 });
   }
 }

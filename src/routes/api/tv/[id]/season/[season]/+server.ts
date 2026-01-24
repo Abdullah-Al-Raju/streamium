@@ -1,5 +1,6 @@
-import { error, json } from "@sveltejs/kit";
+import { json } from "@sveltejs/kit";
 import type { RequestEvent } from "@sveltejs/kit";
+import { TMDB_API_KEY, TMDB_API_URL } from "$env/static/private";
 
 interface Episode {
   id: number;
@@ -18,26 +19,28 @@ interface SeasonResponse {
 }
 
 export async function GET({ params, fetch }: RequestEvent) {
-  const tmdbApiKey = process.env.TMDB_API_KEY;
-  const tmdbApiUrl = process.env.TMDB_API_URL;
-
-  if (!tmdbApiKey || !tmdbApiUrl) {
-    throw error(500, "TMDB API configuration missing");
+  if (!TMDB_API_KEY || !TMDB_API_URL) {
+    return json({
+      episodes: [],
+      error: "TMDB API is not configured"
+    }, { status: 200 });
   }
 
   const { id, season } = params;
 
   try {
     const response = await fetch(
-      `${tmdbApiUrl}/tv/${id}/season/${season}?api_key=${tmdbApiKey}&language=en-US`,
+      `${TMDB_API_URL}/tv/${id}/season/${season}?api_key=${TMDB_API_KEY}&language=en-US`,
     );
 
     if (!response.ok) {
-      throw error(response.status, "Failed to fetch season details");
+      return json({
+        episodes: [],
+        error: `Failed to fetch season details (${response.status})`
+      }, { status: 200 });
     }
 
     const data: SeasonResponse = await response.json();
-
 
     const currentDate = new Date();
     const episodes = data.episodes.filter((episode: Episode) => {
@@ -48,6 +51,9 @@ export async function GET({ params, fetch }: RequestEvent) {
     return json({ episodes });
   } catch (err) {
     console.error("Error fetching season episodes:", err);
-    throw error(500, "Failed to fetch season episodes");
+    return json({
+      episodes: [],
+      error: "Failed to fetch season episodes"
+    }, { status: 200 });
   }
 }

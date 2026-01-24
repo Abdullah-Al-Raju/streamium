@@ -1,9 +1,9 @@
 import { error } from "@sveltejs/kit";
 import type { RequestEvent } from "@sveltejs/kit";
+import { TMDB_IMAGE_URL } from "$env/static/private";
 
 export async function GET({ params, fetch }: RequestEvent) {
-  const tmdbImageUrl = process.env.TMDB_IMAGE_URL;
-  if (!tmdbImageUrl) {
+  if (!TMDB_IMAGE_URL) {
     throw error(500, "TMDB image URL not configured");
   }
 
@@ -11,7 +11,6 @@ export async function GET({ params, fetch }: RequestEvent) {
   if (!path) {
     throw error(400, "Image path is required");
   }
-
 
   const [size, ...imagePath] = path.split("/");
   const actualPath = imagePath.join("/");
@@ -21,8 +20,7 @@ export async function GET({ params, fetch }: RequestEvent) {
   }
 
   try {
-
-    const imageUrl = `${tmdbImageUrl}/${size}${actualPath.startsWith("/") ? actualPath : "/" + actualPath}`;
+    const imageUrl = `${TMDB_IMAGE_URL}/${size}${actualPath.startsWith("/") ? actualPath : "/" + actualPath}`;
     const response = await fetch(imageUrl);
 
     if (!response.ok) {
@@ -34,13 +32,12 @@ export async function GET({ params, fetch }: RequestEvent) {
     headers.set("Content-Type", contentType || "image/jpeg");
     headers.set("Cache-Control", "public, max-age=31536000");
 
-
     return new Response(response.body, {
       status: 200,
       headers,
     });
   } catch (err) {
-    console.error("Image optimization error:", err);
-    throw error(500, "Failed to optimize image");
+    console.error("Image proxy error:", err);
+    throw error(500, "Failed to load image");
   }
 }

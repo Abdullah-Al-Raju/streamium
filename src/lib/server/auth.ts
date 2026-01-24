@@ -3,11 +3,7 @@ import type { User } from "@prisma/client";
 import jwt from "jsonwebtoken";
 import bcrypt from "bcryptjs";
 import type { Cookies } from "@sveltejs/kit";
-
-const JWT_SECRET = process.env.JWT_SECRET;
-if (!JWT_SECRET) {
-  throw new Error("JWT_SECRET environment variable is required");
-}
+import { JWT_SECRET } from "$env/static/private";
 const COOKIE_NAME = "session";
 
 interface Session {
