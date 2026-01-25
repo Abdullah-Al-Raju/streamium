@@ -65,6 +65,7 @@ jobs:
           fi
 
       - name: Ensure desktop release exists
+        shell: bash
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
