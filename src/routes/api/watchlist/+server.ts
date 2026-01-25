@@ -1,6 +1,22 @@
 import { json } from "@sveltejs/kit";
 import type { RequestEvent } from "@sveltejs/kit";
 import { watchlistService } from "$lib/server/services/watchlist";
+import { z } from "zod";
+
+const mediaTypeSchema = z.enum(["movie", "tv"]);
+
+const addToWatchlistSchema = z.object({
+  mediaId: z.number().int().positive(),
+  mediaType: mediaTypeSchema,
+  title: z.string().min(1).max(500),
+  posterPath: z.string().max(500).nullable().optional(),
+  voteAverage: z.number().min(0).max(10).optional().default(0),
+});
+
+const removeFromWatchlistSchema = z.object({
+  mediaId: z.number().int().positive(),
+  mediaType: mediaTypeSchema,
+});
 
 export async function GET({ locals }: RequestEvent) {
   if (!locals.user) {
@@ -11,9 +27,8 @@ export async function GET({ locals }: RequestEvent) {
     const items = await watchlistService.getWatchlist(locals.user.id);
     const total = await watchlistService.getWatchlistCount(locals.user.id);
     return json({ items, total });
-  } catch (error) {
-    const message =
-      error instanceof Error ? error.message : "An error occurred";
+  } catch (err) {
+    const message = err instanceof Error ? err.message : "An error occurred";
     return json({ error: message }, { status: 500 });
   }
 }
@@ -24,33 +39,30 @@ export async function POST({ request, locals }: RequestEvent) {
   }
 
   try {
-    const { mediaId, mediaType, title, posterPath, voteAverage } =
-      await request.json();
+    const body = await request.json();
+    const validation = addToWatchlistSchema.safeParse(body);
 
-    if (!mediaId || !mediaType || !title) {
+    if (!validation.success) {
       return json(
-        { error: "Media ID, type, and title are required" },
+        { error: "Invalid request data", details: validation.error.flatten() },
         { status: 400 },
       );
     }
 
-    if (!["movie", "tv"].includes(mediaType)) {
-      return json({ error: "Invalid media type" }, { status: 400 });
-    }
+    const { mediaId, mediaType, title, posterPath, voteAverage } = validation.data;
 
     const watchlistItem = await watchlistService.addToWatchlist(
       locals.user.id,
       mediaId,
-      mediaType as "movie" | "tv",
+      mediaType,
       title,
-      posterPath,
-      voteAverage || 0,
+      posterPath ?? null,
+      voteAverage,
     );
 
     return json(watchlistItem);
-  } catch (error) {
-    const message =
-      error instanceof Error ? error.message : "An error occurred";
+  } catch (err) {
+    const message = err instanceof Error ? err.message : "An error occurred";
     const status = message === "Item already in watchlist" ? 400 : 500;
     return json({ error: message }, { status });
   }
@@ -62,26 +74,27 @@ export async function DELETE({ request, locals }: RequestEvent) {
   }
 
   try {
-    const { mediaId, mediaType } = await request.json();
+    const body = await request.json();
+    const validation = removeFromWatchlistSchema.safeParse(body);
 
-    if (!mediaId || !mediaType) {
-      return json({ error: "Media ID and type are required" }, { status: 400 });
+    if (!validation.success) {
+      return json(
+        { error: "Invalid request data", details: validation.error.flatten() },
+        { status: 400 },
+      );
     }
 
-    if (!["movie", "tv"].includes(mediaType)) {
-      return json({ error: "Invalid media type" }, { status: 400 });
-    }
+    const { mediaId, mediaType } = validation.data;
 
     await watchlistService.removeFromWatchlist(
       locals.user.id,
       mediaId,
-      mediaType as "movie" | "tv",
+      mediaType,
     );
 
     return json({ message: "Item removed from watchlist" });
-  } catch (error) {
-    const message =
-      error instanceof Error ? error.message : "An error occurred";
+  } catch (err) {
+    const message = err instanceof Error ? err.message : "An error occurred";
     return json({ error: message }, { status: 500 });
   }
 }

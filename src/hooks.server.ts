@@ -38,9 +38,7 @@ setInterval(() => {
   }
 }, ADMIN_RATE_WINDOW);
 
-export const handle: Handle = async ({ event, resolve }) => {
-  const response = await resolve(event);
-
+function setSecurityHeaders(response: Response): void {
   response.headers.set('X-Frame-Options', 'DENY');
   response.headers.set('X-Content-Type-Options', 'nosniff');
   response.headers.set('Referrer-Policy', 'strict-origin-when-cross-origin');
@@ -61,9 +59,12 @@ export const handle: Handle = async ({ event, resolve }) => {
     "https://vidplay.site/ https://*.vidplay.site/ " +
     "https://vidplay.online/ https://*.vidplay.online/;"
   );
+}
 
+export const handle: Handle = async ({ event, resolve }) => {
   const isAdminRoute = event.url.pathname.startsWith('/admin');
 
+  // Authenticate user BEFORE resolving the request
   try {
     const session = await getSession(event.cookies);
 
@@ -90,32 +91,46 @@ export const handle: Handle = async ({ event, resolve }) => {
 
         if (isAdminRoute) {
           if (!user.isAdmin) {
-            return new Response('Unauthorized', { status: 403 });
+            const response = new Response('Unauthorized', { status: 403 });
+            setSecurityHeaders(response);
+            return response;
           }
 
           const clientIp = event.getClientAddress();
           if (!checkAdminRateLimit(clientIp)) {
-            return new Response('Too Many Requests', { status: 429 });
+            const response = new Response('Too Many Requests', { status: 429 });
+            setSecurityHeaders(response);
+            return response;
           }
         }
       } else {
         event.cookies.delete("session", { path: "/" });
 
         if (isAdminRoute) {
-          return new Response('Unauthorized', { status: 403 });
+          const response = new Response('Unauthorized', { status: 403 });
+          setSecurityHeaders(response);
+          return response;
         }
       }
     } else if (isAdminRoute) {
-      return new Response('Unauthorized', { status: 403 });
+      const response = new Response('Unauthorized', { status: 403 });
+      setSecurityHeaders(response);
+      return response;
     }
   } catch (error) {
     event.cookies.delete("session", { path: "/" });
     console.error("Session validation error:", error);
 
     if (isAdminRoute) {
-      return new Response('Unauthorized', { status: 403 });
+      const response = new Response('Unauthorized', { status: 403 });
+      setSecurityHeaders(response);
+      return response;
     }
   }
+
+  // Only resolve AFTER auth checks pass
+  const response = await resolve(event);
+  setSecurityHeaders(response);
 
   return response;
 };

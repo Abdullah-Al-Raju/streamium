@@ -1,6 +1,5 @@
 import { error, json } from "@sveltejs/kit";
 import type { RequestEvent } from "@sveltejs/kit";
-import { requireAdmin } from "$lib/server/admin-middleware";
 import { prisma } from "$lib/server/prisma";
 
 export async function DELETE(event: RequestEvent) {
@@ -15,7 +14,7 @@ export async function DELETE(event: RequestEvent) {
   }
 
   const commentId = parseInt(id);
-  if (isNaN(commentId)) {
+  if (isNaN(commentId) || commentId <= 0) {
     throw error(400, "Invalid comment ID");
   }
 
@@ -28,27 +27,28 @@ export async function DELETE(event: RequestEvent) {
       throw error(404, "Comment not found");
     }
 
-    if (!user.isAdmin && comment.userId !== user.id) {
-      await requireAdmin(event);
+    // Clear authorization: user must own the comment OR be an admin
+    const isOwner = comment.userId === user.id;
+    if (!isOwner && !user.isAdmin) {
+      throw error(403, "You can only delete your own comments");
     }
 
     const updatedComment = await prisma.comment.update({
       where: { id: commentId },
       data: {
-        content: user.isAdmin ? "Comment deleted by admin" : "Comment deleted by user",
+        content: user.isAdmin && !isOwner ? "[Comment removed by moderator]" : "[Comment deleted]",
         flagged: false,
         flagReason: null,
         flaggedAt: null
       }
     });
 
-    if (user.isAdmin) {
-      console.log(`Admin ${user.username} deleted comment ${commentId} at ${new Date().toISOString()}`);
-    }
-
     return json({ success: true, comment: updatedComment });
   } catch (err) {
-    console.error("Error updating comment:", err);
-    throw error(500, "Failed to update comment");
+    if (err && typeof err === 'object' && 'status' in err) {
+      throw err; // Re-throw SvelteKit errors
+    }
+    console.error("Error deleting comment:", err);
+    throw error(500, "Failed to delete comment");
   }
 }

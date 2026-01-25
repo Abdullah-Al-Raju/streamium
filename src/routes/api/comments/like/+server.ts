@@ -2,6 +2,12 @@ import { json } from "@sveltejs/kit";
 import type { RequestEvent } from "@sveltejs/kit";
 import { prisma } from "$lib/server/prisma";
 import { getSession } from "$lib/server/auth";
+import { RateLimitService } from "$lib/server/services/rate-limit";
+import { z } from "zod";
+
+const likeSchema = z.object({
+  commentId: z.number().int().positive(),
+});
 
 export async function POST({ request, cookies }: RequestEvent) {
   try {
@@ -10,10 +16,21 @@ export async function POST({ request, cookies }: RequestEvent) {
       return json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const { commentId } = await request.json();
-    if (!commentId) {
-      return json({ error: "Comment ID is required" }, { status: 400 });
+    // Rate limit likes to prevent spam
+    const rateLimit = RateLimitService.checkLikeLimit(session.userId);
+    if (!rateLimit.allowed) {
+      return json(
+        { error: `Too many likes. Please try again in ${rateLimit.timeLeft} seconds.` },
+        { status: 429 }
+      );
     }
+
+    const body = await request.json();
+    const validation = likeSchema.safeParse(body);
+    if (!validation.success) {
+      return json({ error: "Invalid comment ID" }, { status: 400 });
+    }
+    const { commentId } = validation.data;
 
 
     const comment = await prisma.comment.findUnique({
@@ -86,23 +103,28 @@ export async function GET({ url, cookies }: RequestEvent) {
       return json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const commentId = url.searchParams.get("commentId");
-    if (!commentId) {
+    const rawCommentId = url.searchParams.get("commentId");
+    if (!rawCommentId) {
       return json({ error: "Comment ID is required" }, { status: 400 });
+    }
+
+    const commentId = parseInt(rawCommentId, 10);
+    if (isNaN(commentId) || commentId <= 0) {
+      return json({ error: "Invalid comment ID" }, { status: 400 });
     }
 
     const like = await prisma.commentLike.findUnique({
       where: {
         userId_commentId: {
           userId: session.userId,
-          commentId: parseInt(commentId),
+          commentId,
         },
       },
     });
 
     const likeCount = await prisma.commentLike.count({
       where: {
-        commentId: parseInt(commentId),
+        commentId,
       },
     });
 
@@ -110,10 +132,10 @@ export async function GET({ url, cookies }: RequestEvent) {
       isLiked: !!like,
       likeCount,
     });
-  } catch (error) {
-    console.error("Error checking comment like:", error);
+  } catch (err) {
+    console.error("Error checking comment like:", err);
     return json(
-      { error: "Failed to check like status", details: error instanceof Error ? error.message : 'Unknown error' },
+      { error: "Failed to check like status" },
       { status: 500 }
     );
   }

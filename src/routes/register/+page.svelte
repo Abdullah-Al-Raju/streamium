@@ -32,8 +32,8 @@
     return emailRegex.test(email);
   }
 
-  function handleCaptchaVerify(event: CustomEvent<boolean>) {
-    captchaVerified = event.detail;
+  function handleCaptchaVerify(event: CustomEvent<{ valid: boolean; captchaId: string; answer: string }>) {
+    captchaVerified = event.detail.valid;
     if (!captchaVerified) {
       error = 'Invalid captcha, please try again';
     } else {

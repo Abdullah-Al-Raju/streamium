@@ -2,6 +2,11 @@ import { json } from "@sveltejs/kit";
 import type { RequestEvent } from "@sveltejs/kit";
 import { prisma } from "$lib/server/prisma";
 import { getSession } from "$lib/server/auth";
+import { z } from "zod";
+
+const flagSchema = z.object({
+  reason: z.string().max(500).optional(),
+});
 
 export async function POST({ params, request, cookies }: RequestEvent) {
   try {
@@ -16,12 +21,16 @@ export async function POST({ params, request, cookies }: RequestEvent) {
     }
 
     const commentId = parseInt(id);
-    if (isNaN(commentId)) {
+    if (isNaN(commentId) || commentId <= 0) {
       return json({ error: "Invalid comment ID" }, { status: 400 });
     }
 
     const body = await request.json();
-    const { reason } = body as { reason?: string };
+    const validation = flagSchema.safeParse(body);
+    if (!validation.success) {
+      return json({ error: "Invalid flag reason" }, { status: 400 });
+    }
+    const { reason } = validation.data;
 
 
     const existingComment = await prisma.comment.findUnique({

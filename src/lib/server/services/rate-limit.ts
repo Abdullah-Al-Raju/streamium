@@ -8,11 +8,13 @@ export class RateLimitService {
   private static readonly REGISTER_LIMIT = 3;
   private static readonly COMMENT_LIMIT = 5;
   private static readonly RESET_PASSWORD_LIMIT = 3;
+  private static readonly LIKE_LIMIT = 30;
 
   private static readonly LOGIN_WINDOW = 15 * 60 * 1000; // 15 minutes
   private static readonly REGISTER_WINDOW = 60 * 60 * 1000; // 1 hour
   private static readonly COMMENT_WINDOW = 5 * 60 * 1000; // 5 minutes
   private static readonly RESET_PASSWORD_WINDOW = 60 * 60 * 1000; // 1 hour
+  private static readonly LIKE_WINDOW = 60 * 1000; // 1 minute
 
   private static rateLimits = new Map<string, RateLimit>();
 
@@ -57,6 +59,17 @@ export class RateLimitService {
       `reset:${identifier}`,
       this.RESET_PASSWORD_LIMIT,
       this.RESET_PASSWORD_WINDOW
+    );
+  }
+
+  static checkLikeLimit(userId: number): {
+    allowed: boolean;
+    timeLeft?: number;
+  } {
+    return this.checkLimit(
+      `like:${userId}`,
+      this.LIKE_LIMIT,
+      this.LIKE_WINDOW
     );
   }
 

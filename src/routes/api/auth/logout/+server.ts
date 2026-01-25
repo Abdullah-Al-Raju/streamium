@@ -2,7 +2,7 @@ import { json } from "@sveltejs/kit";
 import type { RequestEvent } from "@sveltejs/kit";
 import { clearSessionCookie } from "$lib/server/auth";
 
-export async function POST({ request }: RequestEvent) {
+export async function POST(_event: RequestEvent) {
   try {
     return json(
       { success: true },

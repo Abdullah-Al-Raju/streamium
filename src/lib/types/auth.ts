@@ -7,9 +7,6 @@ export interface UserSession {
 
 export interface TokenPayload {
   userId: number;
-  username: string;
-  email: string | null;
-  isAdmin: boolean;
 }
 
 export interface AuthServiceInterface {

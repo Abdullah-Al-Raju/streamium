@@ -8,7 +8,14 @@ import type {
   AuthServiceInterface,
 } from "$lib/types/auth";
 
-function toUserSession(data: any): UserSession {
+interface UserData {
+  id: number;
+  username: string;
+  email: string | null;
+  isAdmin: boolean;
+}
+
+function toUserSession(data: UserData): UserSession {
   return {
     id: data.id,
     username: data.username,
@@ -39,11 +46,10 @@ class AuthService implements AuthServiceInterface {
   }
 
   async generateToken(user: UserSession): Promise<string> {
+    // Only store userId in token - fetch other data from DB when needed
+    // This prevents privilege escalation if JWT secret is compromised
     const payload: TokenPayload = {
       userId: user.id,
-      username: user.username,
-      email: user.email,
-      isAdmin: user.isAdmin,
     };
 
     return jsonwebtoken.sign(payload, JWT_SECRET, { expiresIn: "7d" });
@@ -87,33 +93,48 @@ class AuthService implements AuthServiceInterface {
     usernameOrEmail: string,
     password: string,
   ): Promise<UserSession | null> {
-    const result = await prisma.$queryRaw`
-      SELECT id, username, email, "passwordHash", "isAdmin"
-      FROM users
-      WHERE username = ${usernameOrEmail} OR email = ${usernameOrEmail}
-      LIMIT 1
-    `;
+    // Use Prisma query builder instead of raw SQL for better portability
+    const user = await prisma.user.findFirst({
+      where: {
+        OR: [
+          { username: usernameOrEmail },
+          { email: usernameOrEmail },
+        ],
+      },
+      select: {
+        id: true,
+        username: true,
+        email: true,
+        passwordHash: true,
+        isAdmin: true,
+      },
+    });
 
-    const user = Array.isArray(result) ? result[0] : result;
     if (!user) return null;
-
 
     const isValid = await this.comparePasswords(password, user.passwordHash);
     if (!isValid) return null;
 
-    const { passwordHash, ...userSession } = user;
-    return toUserSession(userSession);
+    return toUserSession(user);
   }
 
   async findUserByIdentifier(identifier: string): Promise<UserSession | null> {
-    const result = await prisma.$queryRaw`
-      SELECT id, username, email, "isAdmin"
-      FROM users
-      WHERE username = ${identifier} OR email = ${identifier}
-      LIMIT 1
-    `;
+    // Use Prisma query builder instead of raw SQL for better portability
+    const user = await prisma.user.findFirst({
+      where: {
+        OR: [
+          { username: identifier },
+          { email: identifier },
+        ],
+      },
+      select: {
+        id: true,
+        username: true,
+        email: true,
+        isAdmin: true,
+      },
+    });
 
-    const user = Array.isArray(result) ? result[0] : null;
     return user ? toUserSession(user) : null;
   }
 

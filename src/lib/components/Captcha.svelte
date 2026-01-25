@@ -4,14 +4,39 @@
 
   export let required = true;
 
-  const dispatch = createEventDispatcher<{ verify: boolean }>();
+  const dispatch = createEventDispatcher<{ verify: { valid: boolean; captchaId: string; answer: string } }>();
+
+  let captchaId = '';
   let captchaText = '';
   let userInput = '';
   let canvas: HTMLCanvasElement;
+  let loading = false;
+  let verified = false;
 
-  function generateCaptcha() {
-    const ctx = canvas.getContext('2d');
-    if (!ctx) return;
+  async function fetchCaptcha() {
+    loading = true;
+    verified = false;
+    userInput = '';
+
+    try {
+      const response = await fetch('/api/captcha');
+      if (!response.ok) {
+        throw new Error('Failed to fetch captcha');
+      }
+      const data = await response.json();
+      captchaId = data.id;
+      captchaText = data.text;
+      renderCaptcha();
+    } catch (error) {
+      console.error('Error fetching captcha:', error);
+    } finally {
+      loading = false;
+    }
+  }
+
+  function renderCaptcha() {
+    const ctx = canvas?.getContext('2d');
+    if (!ctx || !captchaText) return;
 
     ctx.clearRect(0, 0, canvas.width, canvas.height);
 
@@ -24,9 +49,6 @@
     gradient.addColorStop(1, '#1a1e2d');
     ctx.fillStyle = gradient;
     ctx.fillRect(0, 0, canvas.width, canvas.height);
-
-    const chars = '23456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnpqrstuvwxyz@#$%';
-    captchaText = Array(6).fill(0).map(() => chars[Math.floor(Math.random() * chars.length)]).join('');
 
     for (let i = 0; i < 3; i++) {
       ctx.beginPath();
@@ -149,16 +171,41 @@
     }
   }
 
-  function verifyCaptcha() {
-    const isValid = userInput.toLowerCase() === captchaText.toLowerCase();
-    dispatch('verify', isValid);
-    if (!isValid) {
-      generateCaptcha();
-      userInput = '';
+  async function verifyCaptcha() {
+    if (!userInput || !captchaId) {
+      dispatch('verify', { valid: false, captchaId: '', answer: '' });
+      return;
+    }
+
+    // Dispatch with data for server-side validation during form submission
+    // We also do a preliminary server check here
+    try {
+      const response = await fetch('/api/captcha', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id: captchaId, answer: userInput }),
+      });
+
+      const result = await response.json();
+      verified = result.valid;
+
+      dispatch('verify', {
+        valid: result.valid,
+        captchaId,
+        answer: userInput
+      });
+
+      if (!result.valid) {
+        // Get a new captcha on failure
+        await fetchCaptcha();
+      }
+    } catch {
+      dispatch('verify', { valid: false, captchaId: '', answer: '' });
+      await fetchCaptcha();
     }
   }
 
-  onMount(generateCaptcha);
+  onMount(fetchCaptcha);
 </script>
 
 <div class="flex flex-col gap-4">
@@ -172,14 +219,27 @@
     ></canvas>
     <button
       type="button"
-      class="p-2 rounded hover:bg-gray-700 text-gray-300"
-      on:click={generateCaptcha}
+      class="p-2 rounded hover:bg-gray-700 text-gray-300 disabled:opacity-50"
+      on:click={fetchCaptcha}
+      disabled={loading}
       aria-label="Generate new CAPTCHA"
     >
-      <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-      </svg>
+      {#if loading}
+        <svg class="w-5 h-5 animate-spin" fill="none" viewBox="0 0 24 24">
+          <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+          <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+        </svg>
+      {:else}
+        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+        </svg>
+      {/if}
     </button>
+    {#if verified}
+      <svg class="w-6 h-6 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+      </svg>
+    {/if}
   </div>
 
   <div class="flex flex-col gap-2">
@@ -195,7 +255,9 @@
       bind:value={userInput}
       on:blur={verifyCaptcha}
       class="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+      class:border-green-500={verified}
       {required}
+      disabled={loading}
       aria-required={required}
       aria-label="CAPTCHA verification input"
     />
