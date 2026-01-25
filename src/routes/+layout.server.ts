@@ -1,7 +1,7 @@
 import type { ServerLoad } from "@sveltejs/kit";
 
-export const load: ServerLoad = async ({ locals }) => {
+export const load: ServerLoad = async () => {
   return {
-    user: locals.user,
+    desktop: process.env.APP_DESKTOP === "true",
   };
 };

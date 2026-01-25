@@ -1,25 +1,15 @@
 <script lang="ts">
   import '../app.css';
   import Navbar from '$lib/components/Navbar.svelte';
+  import Toast from '$lib/components/Toast.svelte';
   import { onMount } from 'svelte';
   import { browser } from '$app/environment';
-  import { watchlistStore } from '$lib/stores/watchlist';
-  import { authStore } from '$lib/stores/auth';
   import { loadProviderUrls } from '$lib/stores/provider-urls';
 
   onMount(async () => {
     if (browser) {
       try {
-
-        await authStore.initialize();
-
-
         await loadProviderUrls();
-
-
-        if ($authStore.isAuthenticated) {
-          await watchlistStore.getWatchlist();
-        }
       } catch (error) {
         console.error('Failed to load initial data:', error);
       }
@@ -33,6 +23,8 @@
   <main>
     <slot />
   </main>
+
+  <Toast />
 
   <footer class="bg-gray-800 py-8 mt-16">
     <div class="container mx-auto px-4">

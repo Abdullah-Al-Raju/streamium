@@ -1,9 +1,12 @@
 import { json } from "@sveltejs/kit";
 import type { RequestEvent } from "@sveltejs/kit";
-import { TMDB_API_KEY, TMDB_API_URL } from "$env/static/private";
+import { env } from "$env/dynamic/private";
 
 export async function GET({ fetch }: RequestEvent) {
-  if (!TMDB_API_KEY || !TMDB_API_URL) {
+  const tmdbApiKey = env.TMDB_API_KEY;
+  const tmdbApiUrl = env.TMDB_API_URL;
+
+  if (!tmdbApiKey || !tmdbApiUrl) {
     return json({
       results: [],
       error: "TMDB API is not configured"
@@ -12,7 +15,7 @@ export async function GET({ fetch }: RequestEvent) {
 
   try {
     const response = await fetch(
-      `${TMDB_API_URL}/trending/tv/week?api_key=${TMDB_API_KEY}&language=en-US`,
+      `${tmdbApiUrl}/trending/tv/week?api_key=${tmdbApiKey}&language=en-US`,
     );
 
     if (!response.ok) {

@@ -1,9 +1,10 @@
 generator client {
   provider = "prisma-client-js"
+  output   = "./generated/sqlite"
 }
 
 datasource db {
-  provider = "mysql"
+  provider = "sqlite"
   url      = env("DATABASE_URL")
 }
 

@@ -17,6 +17,10 @@
   const MAX_RETRIES = providers.length;
 
   $: embedUrl = selectedProvider.getEmbedUrl(mediaId, mediaType, season, episode);
+  $: if (iframe) {
+    // Ensure no sandbox attribute is set (some providers refuse sandboxed iframes).
+    iframe.removeAttribute('sandbox');
+  }
 
   onMount(() => {
     if (browser) {

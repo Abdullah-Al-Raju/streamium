@@ -1,6 +1,6 @@
 import { json } from "@sveltejs/kit";
 import type { RequestEvent } from "@sveltejs/kit";
-import { TMDB_API_KEY, TMDB_API_URL } from "$env/static/private";
+import { env } from "$env/dynamic/private";
 
 interface ReleaseDate {
   certification: string;
@@ -22,7 +22,10 @@ interface WatchProviderRegion {
 }
 
 export async function GET({ params, fetch }: RequestEvent) {
-  if (!TMDB_API_KEY || !TMDB_API_URL) {
+  const tmdbApiKey = env.TMDB_API_KEY;
+  const tmdbApiUrl = env.TMDB_API_URL;
+
+  if (!tmdbApiKey || !tmdbApiUrl) {
     return json({
       releaseType: "Unknown Quality",
       certifications: {},
@@ -34,8 +37,8 @@ export async function GET({ params, fetch }: RequestEvent) {
 
   try {
     const [releaseDatesResponse, watchProvidersResponse] = await Promise.all([
-      fetch(`${TMDB_API_URL}/${mediaType}/${id}/release_dates?api_key=${TMDB_API_KEY}`),
-      fetch(`${TMDB_API_URL}/${mediaType}/${id}/watch/providers?api_key=${TMDB_API_KEY}`),
+      fetch(`${tmdbApiUrl}/${mediaType}/${id}/release_dates?api_key=${tmdbApiKey}`),
+      fetch(`${tmdbApiUrl}/${mediaType}/${id}/watch/providers?api_key=${tmdbApiKey}`),
     ]);
 
     if (!releaseDatesResponse.ok || !watchProvidersResponse.ok) {

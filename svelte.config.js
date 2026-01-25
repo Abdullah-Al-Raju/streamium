@@ -9,7 +9,7 @@ const config = {
     adapter: adapter({
       out: 'build',
       precompress: true,
-      envPrefix: 'APP_',
+      envPrefix: '',
       polyfill: true,
       external: [],
     }),

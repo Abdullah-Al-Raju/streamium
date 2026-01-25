@@ -2,7 +2,6 @@
   import { onMount } from 'svelte';
   import MediaCard from '$lib/components/MediaCard.svelte';
   import Hero from '$lib/components/Hero.svelte';
-  import { authStore } from '$lib/stores/auth';
   import type { TMDBMediaResponse } from '$lib/types/tmdb';
 
   let trendingMovies: TMDBMediaResponse[] = [];

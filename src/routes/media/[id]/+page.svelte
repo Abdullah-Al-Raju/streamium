@@ -1,11 +1,9 @@
 <script lang="ts">
   import VideoPlayer from '$lib/components/VideoPlayer.svelte';
-  import CommentList from '$lib/components/CommentList.svelte';
-  import WatchlistButton from '$lib/components/WatchlistButton.svelte';
   import EpisodeSelector from '$lib/components/EpisodeSelector.svelte';
   import NextEpisode from '$lib/components/NextEpisode.svelte';
+  import WatchlistButton from '$lib/components/WatchlistButton.svelte';
   import { providers, getDefaultProvider } from '$lib/services/providers';
-  import { onMount } from 'svelte';
   import { goto } from '$app/navigation';
   import { page } from '$app/stores';
 
@@ -103,7 +101,6 @@
                   <option value={provider.id}>{provider.name}</option>
                 {/each}
               </select>
-
               <div class="ml-2">
                 <WatchlistButton
                   id={media.id}
@@ -197,15 +194,6 @@
             </div>
           </div>
 
-          <div class="mt-8 space-y-6">
-            <h2 class="text-2xl font-bold">Comments</h2>
-            <CommentList
-              mediaId={media.id}
-              {mediaType}
-              season={mediaType === 'tv' ? selectedSeason : undefined}
-              episode={mediaType === 'tv' ? selectedEpisode : undefined}
-            />
-          </div>
         </div>
 
         <!-- Left Column: Poster -->

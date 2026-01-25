@@ -1,6 +1,6 @@
 import { json } from "@sveltejs/kit";
 import type { RequestEvent } from "@sveltejs/kit";
-import { TMDB_API_KEY, TMDB_API_URL } from "$env/static/private";
+import { env } from "$env/dynamic/private";
 
 interface Episode {
   id: number;
@@ -19,7 +19,10 @@ interface SeasonResponse {
 }
 
 export async function GET({ params, fetch }: RequestEvent) {
-  if (!TMDB_API_KEY || !TMDB_API_URL) {
+  const tmdbApiKey = env.TMDB_API_KEY;
+  const tmdbApiUrl = env.TMDB_API_URL;
+
+  if (!tmdbApiKey || !tmdbApiUrl) {
     return json({
       episodes: [],
       error: "TMDB API is not configured"
@@ -30,7 +33,7 @@ export async function GET({ params, fetch }: RequestEvent) {
 
   try {
     const response = await fetch(
-      `${TMDB_API_URL}/tv/${id}/season/${season}?api_key=${TMDB_API_KEY}&language=en-US`,
+      `${tmdbApiUrl}/tv/${id}/season/${season}?api_key=${tmdbApiKey}&language=en-US`,
     );
 
     if (!response.ok) {

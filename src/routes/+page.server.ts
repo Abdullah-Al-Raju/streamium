@@ -8,7 +8,7 @@ export const load = (async () => {
     return {
       trendingMovies: [],
       trendingTVShows: [],
-      error: 'TMDB API key is not configured. Please add TMDB_API_KEY to your .env file.',
+      error: 'TMDB API key is not configured. Please add TMDB_API_KEY in settings or environment.',
     };
   }
 

@@ -1,6 +1,6 @@
 import { error } from "@sveltejs/kit";
 import type { RequestEvent } from "@sveltejs/kit";
-import { TMDB_IMAGE_URL } from "$env/static/private";
+import { env } from "$env/dynamic/private";
 
 // Allowed image sizes from TMDB
 const ALLOWED_SIZES = new Set([
@@ -12,7 +12,9 @@ const ALLOWED_SIZES = new Set([
 const PATH_PATTERN = /^[a-zA-Z0-9_\-./]+$/;
 
 export async function GET({ params, fetch }: RequestEvent) {
-  if (!TMDB_IMAGE_URL) {
+  const tmdbImageUrl = env.TMDB_IMAGE_URL;
+
+  if (!tmdbImageUrl) {
     throw error(500, "TMDB image URL not configured");
   }
 
@@ -39,7 +41,7 @@ export async function GET({ params, fetch }: RequestEvent) {
   }
 
   try {
-    const imageUrl = `${TMDB_IMAGE_URL}/${size}${actualPath.startsWith("/") ? actualPath : "/" + actualPath}`;
+    const imageUrl = `${tmdbImageUrl}/${size}${actualPath.startsWith("/") ? actualPath : "/" + actualPath}`;
     const response = await fetch(imageUrl);
 
     if (!response.ok) {

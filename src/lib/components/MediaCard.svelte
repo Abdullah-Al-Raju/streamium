@@ -9,7 +9,6 @@
   export let title: string;
   export let posterPath: string | null;
   export let voteAverage: number;
-  export let showWatchlist = true;
 
   let releaseType = 'Unknown Quality';
   let certification = '';
@@ -29,17 +28,6 @@
     }
   });
 
-  function handleWatchlistClick(event: MouseEvent) {
-    event.stopPropagation();
-    event.preventDefault();
-  }
-
-  function handleWatchlistKeydown(event: KeyboardEvent) {
-    if (event.key === 'Enter') {
-      event.stopPropagation();
-      event.preventDefault();
-    }
-  }
 </script>
 
 <div class="group relative bg-gray-800 rounded-lg overflow-hidden transition-transform hover:scale-105">
@@ -61,7 +49,7 @@
       </div>
 
       {#if !loading && releaseType !== 'Unknown Quality'}
-        <div class="absolute top-2 right-10 px-2 py-1 text-xs font-semibold rounded bg-primary-500 text-white">
+        <div class="absolute top-12 right-2 px-2 py-1 text-xs font-semibold rounded bg-primary-500 text-white">
           {releaseType}
         </div>
       {/if}
@@ -86,17 +74,10 @@
     </div>
   </a>
 
-  {#if showWatchlist}
-    <div
-      role="button"
-      tabindex="0"
-      class="absolute top-2 right-2 z-10"
-      on:click={handleWatchlistClick}
-      on:keydown={handleWatchlistKeydown}
-    >
-      <WatchlistButton {id} {type} {title} posterPath={posterPath} {voteAverage} />
-    </div>
-  {/if}
+  <div class="absolute top-2 right-2 z-10">
+    <WatchlistButton {id} {type} {title} posterPath={posterPath} {voteAverage} />
+  </div>
+
 </div>
 
 <style>

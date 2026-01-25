@@ -1,93 +1,49 @@
 <script lang="ts">
-  import { onMount } from 'svelte';
-  import { browser } from '$app/environment';
-  import { watchlistStore } from '$lib/stores/watchlist';
-  import { toastStore } from '$lib/stores/toast';
-  import { authStore } from '$lib/stores/auth';
+  import { watchlistStore } from "$lib/stores/watchlist";
+  import { toastStore } from "$lib/stores/toast";
 
   export let id: number;
-  export let type: string;
+  export let type: "movie" | "tv";
   export let title: string;
   export let posterPath: string | null;
   export let voteAverage: number;
 
-  let inWatchlist = false;
-  let loading = false;
-  let mounted = false;
+  $: isInWatchlist = $watchlistStore.some(
+    (item) => item.id === id && item.type === type,
+  );
 
-  async function checkWatchlistStatus() {
-    if (!browser || !mounted || !$authStore.user) return;
+  function toggleWatchlist(event: MouseEvent) {
+    event.stopPropagation();
+    event.preventDefault();
 
-    try {
-      inWatchlist = await watchlistStore.isInWatchlist(id, type);
-    } catch (error) {
-      console.error('Failed to check watchlist status:', error);
+    if (isInWatchlist) {
+      watchlistStore.remove(id, type);
+      toastStore.info("Removed from watchlist");
+    } else {
+      watchlistStore.add({ id, type, title, posterPath, voteAverage });
+      toastStore.success("Added to watchlist");
     }
-  }
-
-  async function toggleWatchlist() {
-    if (loading || !$authStore.user) {
-      if (!$authStore.user) {
-        toastStore.error('Please login to add to watchlist');
-      }
-      return;
-    }
-
-    loading = true;
-
-    try {
-      if (inWatchlist) {
-        await watchlistStore.removeFromWatchlist(id, type);
-        toastStore.success('Removed from watchlist');
-      } else {
-        await watchlistStore.addToWatchlist(id, type, title, posterPath, voteAverage);
-        toastStore.success('Added to watchlist');
-      }
-      inWatchlist = !inWatchlist;
-    } catch (error) {
-      console.error('Failed to update watchlist:', error);
-      toastStore.error('Failed to update watchlist');
-    } finally {
-      loading = false;
-    }
-  }
-
-  onMount(() => {
-    mounted = true;
-    checkWatchlistStatus();
-  });
-
-  $: if ($authStore.user) {
-    checkWatchlistStatus();
   }
 </script>
 
 <button
   type="button"
-  class="p-2 rounded-full bg-gray-900/80 hover:bg-gray-900 transition-colors"
+  class="flex items-center justify-center w-9 h-9 rounded-full bg-black/70 text-white hover:bg-black/80 transition-colors"
+  aria-pressed={isInWatchlist}
+  aria-label={isInWatchlist ? `Remove ${title} from watchlist` : `Add ${title} to watchlist`}
   on:click={toggleWatchlist}
-  disabled={loading}
-  aria-label={inWatchlist ? `Remove ${title} from watchlist` : `Add ${title} to watchlist`}
 >
   <svg
     class="w-5 h-5"
-    class:text-primary-400={inWatchlist}
-    class:text-gray-400={!inWatchlist}
-    fill="currentColor"
-    viewBox="0 0 20 20"
+    fill={isInWatchlist ? "currentColor" : "none"}
+    stroke="currentColor"
+    viewBox="0 0 24 24"
   >
-    {#if inWatchlist}
-      <path
-        d="M5 4a2 2 0 012-2h6a2 2 0 012 2v14l-5-2.5L5 18V4z"
-      />
-    {:else}
-      <path
-        d="M5 4a2 2 0 012-2h6a2 2 0 012 2v14l-5-2.5L5 18V4z"
-        fill="none"
-        stroke="currentColor"
-        stroke-width="2"
-        stroke-linejoin="round"
-      />
-    {/if}
+    <path
+      stroke-linecap="round"
+      stroke-linejoin="round"
+      stroke-width="2"
+      d="M4.318 6.318a4.5 4.5 0 016.364 0L12 7.636l1.318-1.318a4.5 4.5 0 116.364 6.364L12 20.364l-7.682-7.682a4.5 4.5 0 010-6.364z"
+    />
   </svg>
 </button>

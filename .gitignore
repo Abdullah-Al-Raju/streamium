@@ -11,11 +11,14 @@ package-lock.json
 .svelte-kit
 build
 dist
+dist-desktop
 
 # Database
 *.db
 *.db-journal
+!desktop/assets/streamium.db
 prisma/dev.db
+prisma/generated
 prisma/migrations
 
 # IDE
@@ -38,6 +41,7 @@ Thumbs.db
 # Cache
 .cache
 static/image-cache/
+.desktop
 
 # Testing
 coverage

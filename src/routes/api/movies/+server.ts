@@ -1,10 +1,13 @@
 import { json } from "@sveltejs/kit";
 import type { RequestEvent } from "@sveltejs/kit";
-import { TMDB_API_KEY, TMDB_API_URL } from "$env/static/private";
+import { env } from "$env/dynamic/private";
 import type { TMDBResponse, TMDBMovie } from "$lib/types/tmdb";
 
 export async function GET({ fetch, url }: RequestEvent) {
-  if (!TMDB_API_KEY || !TMDB_API_URL) {
+  const tmdbApiKey = env.TMDB_API_KEY;
+  const tmdbApiUrl = env.TMDB_API_URL;
+
+  if (!tmdbApiKey || !tmdbApiUrl) {
     return json({
       results: [],
       total_pages: 0,
@@ -21,30 +24,30 @@ export async function GET({ fetch, url }: RequestEvent) {
 
   try {
     let apiUrl: string;
-    const baseParams = `api_key=${TMDB_API_KEY}&language=en-US&page=${page}&vote_average.gte=0.1`;
+    const baseParams = `api_key=${tmdbApiKey}&language=en-US&page=${page}&vote_average.gte=0.1`;
 
     switch (sort) {
       case "trending":
-        apiUrl = `${TMDB_API_URL}/trending/movie/week?${baseParams}`;
+        apiUrl = `${tmdbApiUrl}/trending/movie/week?${baseParams}`;
         break;
       case "popular":
-        apiUrl = `${TMDB_API_URL}/movie/popular?${baseParams}`;
+        apiUrl = `${tmdbApiUrl}/movie/popular?${baseParams}`;
         break;
       case "top_rated":
-        apiUrl = `${TMDB_API_URL}/movie/top_rated?${baseParams}`;
+        apiUrl = `${tmdbApiUrl}/movie/top_rated?${baseParams}`;
         break;
       case "now_playing":
-        apiUrl = `${TMDB_API_URL}/movie/now_playing?${baseParams}`;
+        apiUrl = `${tmdbApiUrl}/movie/now_playing?${baseParams}`;
         break;
       case "upcoming":
-        apiUrl = `${TMDB_API_URL}/movie/upcoming?${baseParams}`;
+        apiUrl = `${tmdbApiUrl}/movie/upcoming?${baseParams}`;
         break;
       default:
-        apiUrl = `${TMDB_API_URL}/discover/movie?${baseParams}`;
+        apiUrl = `${tmdbApiUrl}/discover/movie?${baseParams}`;
     }
 
     if (genre || year) {
-      apiUrl = `${TMDB_API_URL}/discover/movie?${baseParams}`;
+      apiUrl = `${tmdbApiUrl}/discover/movie?${baseParams}`;
       if (genre) apiUrl += `&with_genres=${genre}`;
       if (year) apiUrl += `&primary_release_year=${year}`;
     }
@@ -57,7 +60,7 @@ export async function GET({ fetch, url }: RequestEvent) {
         total_pages: 0,
         total_results: 0,
         page: 1,
-        error: "Invalid TMDB API key. Please check your TMDB_API_KEY in .env file."
+        error: "Invalid TMDB API key. Please check your TMDB_API_KEY in settings or environment."
       }, { status: 200 });
     }
 

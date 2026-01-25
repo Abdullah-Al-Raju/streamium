@@ -1,0 +1,15 @@
+PRAGMA foreign_keys = ON;
+
+CREATE TABLE image_cache (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  url TEXT NOT NULL UNIQUE,
+  path TEXT NOT NULL,
+  format TEXT NOT NULL,
+  width INTEGER,
+  height INTEGER,
+  quality INTEGER NOT NULL,
+  createdAt DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  accessedAt DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE INDEX image_cache_url_idx ON image_cache(url);

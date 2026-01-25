@@ -7,22 +7,8 @@ declare global {
       message: string;
       code?: string;
     }
-    interface Locals {
-      user: {
-        id: number;
-        username: string;
-        email: string;
-        isAdmin: boolean;
-      } | null;
-    }
-    interface PageData {
-      user: {
-        id: number;
-        username: string;
-        email: string;
-        isAdmin: boolean;
-      } | null;
-    }
+    interface Locals {}
+    interface PageData {}
     interface Platform {}
   }
 
@@ -30,7 +16,6 @@ declare global {
     interface ProcessEnv {
       TMDB_API_KEY: string;
       DATABASE_URL: string;
-      JWT_SECRET: string;
     }
   }
 }

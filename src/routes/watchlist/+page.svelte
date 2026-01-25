@@ -1,43 +1,27 @@
 <script lang="ts">
-  import { onMount } from 'svelte';
-  import { watchlistStore } from '$lib/stores/watchlist';
-  import MediaCard from '$lib/components/MediaCard.svelte';
+  import MediaCard from "$lib/components/MediaCard.svelte";
+  import { watchlistStore } from "$lib/stores/watchlist";
 
-  $: items = $watchlistStore.items;
-  $: loading = $watchlistStore.loading;
-  $: error = $watchlistStore.error;
-
-  onMount(async () => {
-    try {
-      await watchlistStore.getWatchlist();
-    } catch (error) {
-      console.error('Failed to load watchlist:', error);
-    }
-  });
+  $: items = $watchlistStore;
+  $: sortedItems = [...items].sort((a, b) => (b.addedAt || 0) - (a.addedAt || 0));
 </script>
 
 <div class="container mx-auto px-4 py-8">
-  <h1 class="text-3xl font-bold mb-8">My Watchlist</h1>
+  <div class="flex items-center justify-between mb-6">
+    <h1 class="text-3xl font-bold">Watchlist</h1>
+    <span class="text-sm text-gray-400">{sortedItems.length} items</span>
+  </div>
 
-  {#if loading}
-    <div class="flex justify-center py-8">
-      <div class="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-primary-500"></div>
-    </div>
-  {:else if error}
-    <div class="bg-red-900/50 text-red-200 p-4 rounded-lg text-center">
-      {error}
-    </div>
-  {:else if items.length === 0}
-    <div class="bg-gray-800/50 text-gray-400 p-8 rounded-lg text-center">
-      <p class="text-lg mb-2">Your watchlist is empty</p>
-      <p class="text-sm text-gray-500">Add movies or TV shows to watch later!</p>
+  {#if sortedItems.length === 0}
+    <div class="bg-gray-800/60 border border-gray-700 rounded-lg p-8 text-center text-gray-300">
+      Your watchlist is empty.
     </div>
   {:else}
     <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4">
-      {#each items as item (item.id)}
+      {#each sortedItems as item (item.id + item.type)}
         <MediaCard
-          id={item.mediaId}
-          type={item.mediaType === 'movie' ? 'movie' : 'tv'}
+          id={item.id}
+          type={item.type}
           title={item.title}
           posterPath={item.posterPath}
           voteAverage={item.voteAverage}

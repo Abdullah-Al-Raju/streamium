@@ -1,4 +1,4 @@
-import { TMDB_API_KEY } from '$env/static/private';
+import { env } from '$env/dynamic/private';
 import type { TMDBMovie, TMDBTVShow, TMDBResponse, TMDBGenre, TMDBMediaResponse } from '$lib/types/tmdb';
 
 const TMDB_BASE_URL = 'https://api.themoviedb.org/3';
@@ -18,29 +18,25 @@ export class TMDBApiError extends Error {
 }
 
 export class TMDBService {
-  private apiKey: string;
-  private baseUrl: string;
-
-  constructor() {
-    this.apiKey = TMDB_API_KEY || '';
-    this.baseUrl = TMDB_BASE_URL;
-  }
-
   isConfigured(): boolean {
-    return !!this.apiKey && this.apiKey.length > 0;
+    const apiKey = env.TMDB_API_KEY || '';
+    return apiKey.length > 0;
   }
 
   private async fetch<T>(endpoint: string, params: QueryParams = {}, retryCount = 0): Promise<T> {
+    const apiKey = env.TMDB_API_KEY || '';
+    const baseUrl = env.TMDB_API_URL || TMDB_BASE_URL;
+
     if (!this.isConfigured()) {
       throw new TMDBApiError(
-        'TMDB API key is not configured. Please add TMDB_API_KEY to your .env file.',
+        'TMDB API key is not configured. Please add TMDB_API_KEY in settings or environment.',
         401,
         true
       );
     }
 
-    const url = new URL(`${this.baseUrl}${endpoint}`);
-    url.searchParams.append('api_key', this.apiKey);
+    const url = new URL(`${baseUrl}${endpoint}`);
+    url.searchParams.append('api_key', apiKey);
 
     if (!params['vote_average.gte']) {
       params['vote_average.gte'] = 0.1;
@@ -58,7 +54,7 @@ export class TMDBService {
       if (!response.ok) {
         if (response.status === 401) {
           throw new TMDBApiError(
-            'Invalid TMDB API key. Please check your TMDB_API_KEY in .env file.',
+            'Invalid TMDB API key. Please check your TMDB_API_KEY in settings or environment.',
             401,
             true
           );
