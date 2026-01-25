@@ -3,6 +3,7 @@ import type { RequestEvent } from "@sveltejs/kit";
 import { authService } from "$lib/server/services/auth";
 import { createSessionCookie } from "$lib/server/auth";
 import { RateLimitService } from "$lib/server/services/rate-limit";
+import { handleDatabaseError } from "$lib/server/services/db-error";
 import { dev } from "$app/environment";
 
 const PASSWORD_MIN_LENGTH = 8;
@@ -66,7 +67,6 @@ export async function POST({ request, getClientAddress }: RequestEvent) {
       },
     });
   } catch (error) {
-    console.error("Registration error:", error);
-    return json({ error: "Internal server error" }, { status: 500 });
+    return handleDatabaseError(error, "register");
   }
 }

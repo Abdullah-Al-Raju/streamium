@@ -3,6 +3,7 @@ import type { RequestEvent } from "@sveltejs/kit";
 import { prisma } from "$lib/server/prisma";
 import { getSession } from "$lib/server/auth";
 import { RateLimitService } from "$lib/server/services/rate-limit";
+import { handleDatabaseError } from "$lib/server/services/db-error";
 import { z } from "zod";
 
 const likeSchema = z.object({
@@ -87,12 +88,8 @@ export async function POST({ request, cookies }: RequestEvent) {
       isLiked: !existingLike,
       likeCount: updatedComment?._count.likes || 0,
     });
-  } catch (error) {
-    console.error("Error toggling comment like:", error);
-    return json(
-      { error: "Failed to toggle like", details: error instanceof Error ? error.message : 'Unknown error' },
-      { status: 500 }
-    );
+  } catch (err) {
+    return handleDatabaseError(err, "toggle like");
   }
 }
 
@@ -133,10 +130,6 @@ export async function GET({ url, cookies }: RequestEvent) {
       likeCount,
     });
   } catch (err) {
-    console.error("Error checking comment like:", err);
-    return json(
-      { error: "Failed to check like status" },
-      { status: 500 }
-    );
+    return handleDatabaseError(err, "check like status");
   }
 }

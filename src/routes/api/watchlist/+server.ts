@@ -1,6 +1,7 @@
 import { json } from "@sveltejs/kit";
 import type { RequestEvent } from "@sveltejs/kit";
 import { watchlistService } from "$lib/server/services/watchlist";
+import { handleDatabaseError } from "$lib/server/services/db-error";
 import { z } from "zod";
 
 const mediaTypeSchema = z.enum(["movie", "tv"]);
@@ -28,8 +29,7 @@ export async function GET({ locals }: RequestEvent) {
     const total = await watchlistService.getWatchlistCount(locals.user.id);
     return json({ items, total });
   } catch (err) {
-    const message = err instanceof Error ? err.message : "An error occurred";
-    return json({ error: message }, { status: 500 });
+    return handleDatabaseError(err, "fetch watchlist");
   }
 }
 
@@ -62,9 +62,7 @@ export async function POST({ request, locals }: RequestEvent) {
 
     return json(watchlistItem);
   } catch (err) {
-    const message = err instanceof Error ? err.message : "An error occurred";
-    const status = message === "Item already in watchlist" ? 400 : 500;
-    return json({ error: message }, { status });
+    return handleDatabaseError(err, "add to watchlist");
   }
 }
 
@@ -94,7 +92,6 @@ export async function DELETE({ request, locals }: RequestEvent) {
 
     return json({ message: "Item removed from watchlist" });
   } catch (err) {
-    const message = err instanceof Error ? err.message : "An error occurred";
-    return json({ error: message }, { status: 500 });
+    return handleDatabaseError(err, "remove from watchlist");
   }
 }

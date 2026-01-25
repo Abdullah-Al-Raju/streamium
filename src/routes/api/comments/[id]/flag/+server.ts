@@ -2,6 +2,7 @@ import { json } from "@sveltejs/kit";
 import type { RequestEvent } from "@sveltejs/kit";
 import { prisma } from "$lib/server/prisma";
 import { getSession } from "$lib/server/auth";
+import { handleDatabaseError } from "$lib/server/services/db-error";
 import { z } from "zod";
 
 const flagSchema = z.object({
@@ -60,11 +61,7 @@ export async function POST({ params, request, cookies }: RequestEvent) {
       comment: updatedComment
     });
   } catch (error) {
-    console.error("Error flagging comment:", error);
-    return json(
-      { error: "Failed to flag comment", details: error instanceof Error ? error.message : 'Unknown error' },
-      { status: 500 }
-    );
+    return handleDatabaseError(error, "flag comment");
   }
 }
 
@@ -108,10 +105,6 @@ export async function DELETE({ params, cookies }: RequestEvent) {
       comment: updatedComment
     });
   } catch (error) {
-    console.error("Error unflagging comment:", error);
-    return json(
-      { error: "Failed to unflag comment", details: error instanceof Error ? error.message : 'Unknown error' },
-      { status: 500 }
-    );
+    return handleDatabaseError(error, "unflag comment");
   }
 }

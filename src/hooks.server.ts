@@ -1,6 +1,7 @@
 import type { Handle } from "@sveltejs/kit";
 import { getSession } from "$lib/server/auth";
 import { prisma } from "$lib/server/prisma";
+import { isDatabaseConnectionError } from "$lib/server/services/db-error";
 
 const ADMIN_RATE_LIMIT = 100;
 const ADMIN_RATE_WINDOW = 5 * 60 * 1000;
@@ -118,13 +119,26 @@ export const handle: Handle = async ({ event, resolve }) => {
       return response;
     }
   } catch (error) {
-    event.cookies.delete("session", { path: "/" });
-    console.error("Session validation error:", error);
+    // Handle database connection errors gracefully
+    if (isDatabaseConnectionError(error)) {
+      console.error("Database unavailable during session validation");
+      // Don't delete session cookie - DB might come back
+      // For admin routes, return 503; for others, continue without auth
+      if (isAdminRoute) {
+        const response = new Response('Service temporarily unavailable', { status: 503 });
+        setSecurityHeaders(response);
+        return response;
+      }
+      // Continue without user context for non-admin routes
+    } else {
+      event.cookies.delete("session", { path: "/" });
+      console.error("Session validation error:", error);
 
-    if (isAdminRoute) {
-      const response = new Response('Unauthorized', { status: 403 });
-      setSecurityHeaders(response);
-      return response;
+      if (isAdminRoute) {
+        const response = new Response('Unauthorized', { status: 403 });
+        setSecurityHeaders(response);
+        return response;
+      }
     }
   }
 

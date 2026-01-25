@@ -1,6 +1,7 @@
 import { error, json } from "@sveltejs/kit";
 import type { RequestEvent } from "@sveltejs/kit";
 import { prisma } from "$lib/server/prisma";
+import { isDatabaseConnectionError } from "$lib/server/services/db-error";
 
 export async function DELETE(event: RequestEvent) {
   const user = event.locals.user;
@@ -47,6 +48,10 @@ export async function DELETE(event: RequestEvent) {
   } catch (err) {
     if (err && typeof err === 'object' && 'status' in err) {
       throw err; // Re-throw SvelteKit errors
+    }
+    if (isDatabaseConnectionError(err)) {
+      console.error("Database unavailable:", err instanceof Error ? err.message : 'Unknown error');
+      throw error(503, "Service temporarily unavailable");
     }
     console.error("Error deleting comment:", err);
     throw error(500, "Failed to delete comment");

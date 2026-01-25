@@ -4,6 +4,7 @@ import { getSession } from "$lib/server/auth";
 import { validateComment } from "$lib/shared/comment-validation";
 import { commentService } from "$lib/server/services/comments";
 import { commentRateLimit } from "$lib/server/services/rate-limit";
+import { handleDatabaseError } from "$lib/server/services/db-error";
 import { z } from 'zod';
 
 const mediaTypeSchema = z.enum(['movie', 'tv']);
@@ -84,11 +85,7 @@ export async function GET({ url, cookies, getClientAddress }: RequestEvent) {
       totalPages: Math.ceil(total / limit),
     });
   } catch (error) {
-    console.error("Error fetching comments:", error);
-    return json(
-      { error: "Failed to fetch comments" },
-      { status: 500 }
-    );
+    return handleDatabaseError(error, "fetch comments");
   }
 }
 
@@ -127,11 +124,7 @@ export async function POST({ request, cookies, getClientAddress }: RequestEvent)
 
     return json(comment);
   } catch (error) {
-    console.error("Error creating comment:", error);
-    return json(
-      { error: "Failed to create comment" },
-      { status: 500 }
-    );
+    return handleDatabaseError(error, "create comment");
   }
 }
 
@@ -155,11 +148,7 @@ export async function DELETE({ url, cookies, getClientAddress }: RequestEvent) {
     await commentService.deleteComment(commentId, session.userId);
     return json({ success: true });
   } catch (error) {
-    console.error("Error deleting comment:", error);
-    return json(
-      { error: "Failed to delete comment" },
-      { status: 500 }
-    );
+    return handleDatabaseError(error, "delete comment");
   }
 }
 

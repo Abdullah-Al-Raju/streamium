@@ -1,6 +1,7 @@
 import { error, json } from "@sveltejs/kit";
 import type { RequestEvent } from "@sveltejs/kit";
 import { watchlistService } from "$lib/server/services/watchlist";
+import { isDatabaseConnectionError } from "$lib/server/services/db-error";
 
 export async function GET({ url, locals }: RequestEvent) {
   if (!locals.user) {
@@ -23,6 +24,10 @@ export async function GET({ url, locals }: RequestEvent) {
 
     return json({ inWatchlist });
   } catch (err) {
+    if (isDatabaseConnectionError(err)) {
+      console.error("Database unavailable:", err instanceof Error ? err.message : 'Unknown error');
+      throw error(503, "Service temporarily unavailable");
+    }
     console.error("Error checking watchlist:", err);
     throw error(500, "Failed to check watchlist");
   }
