@@ -54,3 +54,34 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           CSC_IDENTITY_AUTO_DISCOVERY: "false"
+
+      - name: Set desktop release tag
+        shell: bash
+        run: |
+          if [[ "${GITHUB_REF_NAME}" == desktop-v* ]]; then
+            echo "DESKTOP_TAG=${GITHUB_REF_NAME}" >> "$GITHUB_ENV"
+          else
+            echo "DESKTOP_TAG=desktop-${GITHUB_REF_NAME}" >> "$GITHUB_ENV"
+          fi
+
+      - name: Ensure desktop release exists
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          if ! gh release view "$DESKTOP_TAG" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
+            title="Desktop app ${DESKTOP_TAG#desktop-}"
+            gh release create "$DESKTOP_TAG" --repo "$GITHUB_REPOSITORY" -t "$title" -n ""
+          fi
+
+      - name: Upload artifacts to desktop release
+        shell: bash
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          shopt -s nullglob
+          files=(dist-desktop/*.dmg dist-desktop/*.zip dist-desktop/*.exe dist-desktop/*.AppImage)
+          if [[ ${#files[@]} -eq 0 ]]; then
+            echo "No desktop artifacts found in dist-desktop"
+            exit 1
+          fi
+          gh release upload "$DESKTOP_TAG" "${files[@]}" --repo "$GITHUB_REPOSITORY" --clobber
