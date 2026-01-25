@@ -19,12 +19,11 @@ export const providers: Provider[] = [
     name: "VidSrc",
     getEmbedUrl: (mediaId, type, season, episode) => {
       const urls = get(providerUrls);
-      if (!urls) return "";
+      if (!urls?.vidsrc) return "";
 
       if (type === "movie") {
         return `${urls.vidsrc}/movie/${mediaId}?autoPlay=true`;
       } else {
-
         if (typeof season !== "undefined" && typeof episode !== "undefined") {
           return `${urls.vidsrc}/tv/${mediaId}/${season}/${episode}?autoPlay=true&autoNext=true`;
         }
@@ -33,38 +32,36 @@ export const providers: Provider[] = [
     },
   },
   {
-    id: "vidsrcpro",
-    name: "VidSrc Pro",
+    id: "moviesapi",
+    name: "MoviesAPI",
     getEmbedUrl: (mediaId, type, season, episode) => {
       const urls = get(providerUrls);
-      if (!urls) return "";
+      if (!urls?.moviesapi) return "";
 
       if (type === "movie") {
-        return `${urls.vidsrcpro}/movie/${mediaId}`;
+        return `${urls.moviesapi}/movie/${mediaId}`;
       } else {
-
         if (typeof season !== "undefined" && typeof episode !== "undefined") {
-          return `${urls.vidsrcpro}/tv/${mediaId}/${season}/${episode}`;
+          return `${urls.moviesapi}/tv/${mediaId}-${season}-${episode}`;
         }
-        return `${urls.vidsrcpro}/tv/${mediaId}`;
+        return `${urls.moviesapi}/tv/${mediaId}-1-1`;
       }
     },
   },
   {
-    id: "embedsu",
-    name: "Embed.su",
+    id: "vidsrcembed",
+    name: "VidSrc 2",
     getEmbedUrl: (mediaId, type, season, episode) => {
       const urls = get(providerUrls);
-      if (!urls) return "";
+      if (!urls?.vidsrcembed) return "";
 
       if (type === "movie") {
-        return `${urls.embedsu}/movie/${mediaId}`;
+        return `${urls.vidsrcembed}/embed/movie?tmdb=${mediaId}`;
       } else {
-
         if (typeof season !== "undefined" && typeof episode !== "undefined") {
-          return `${urls.embedsu}/tv/${mediaId}/${season}/${episode}`;
+          return `${urls.vidsrcembed}/embed/tv?tmdb=${mediaId}&season=${season}&episode=${episode}`;
         }
-        return `${urls.embedsu}/tv/${mediaId}`;
+        return `${urls.vidsrcembed}/embed/tv?tmdb=${mediaId}&season=1&episode=1`;
       }
     },
   },

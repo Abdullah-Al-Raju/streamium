@@ -2,8 +2,8 @@ import { writable } from "svelte/store";
 
 interface ProviderUrls {
   vidsrc: string;
-  vidsrcpro: string;
-  embedsu: string;
+  moviesapi: string;
+  vidsrcembed: string;
 }
 
 export const providerUrls = writable<ProviderUrls | null>(null);

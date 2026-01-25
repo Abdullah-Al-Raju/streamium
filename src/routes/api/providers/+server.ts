@@ -20,7 +20,7 @@ function validateProviderUrl(url: string | undefined): string | null {
 export async function GET() {
   return json({
     vidsrc: validateProviderUrl(env.VIDSRC_BASE_URL),
-    vidsrcpro: validateProviderUrl(env.VIDSRC_PRO_BASE_URL),
-    embedsu: validateProviderUrl(env.EMBEDSU_BASE_URL),
+    moviesapi: validateProviderUrl(env.MOVIESAPI_BASE_URL),
+    vidsrcembed: validateProviderUrl(env.VIDSRC_EMBED_BASE_URL),
   });
 }
